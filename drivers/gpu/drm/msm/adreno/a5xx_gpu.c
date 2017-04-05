@@ -14,7 +14,9 @@
 #include <linux/elf.h>
 #include <linux/types.h>
 #include <linux/cpumask.h>
-#include <linux/qcom_scm.h>
+//#include <linux/qcom_scm.h>
+#include <soc/qcom/scm.h>
+#include <soc/qcom/subsystem_restart.h>
 #include <linux/dma-mapping.h>
 #include <linux/of_reserved_mem.h>
 #include "msm_gem.h"
@@ -185,7 +187,6 @@ out:
 	release_firmware(mdt);
 	return ret;
 }
-
 static void a5xx_submit(struct msm_gpu *gpu, struct msm_gem_submit *submit,
 	struct msm_file_private *ctx)
 {
@@ -483,7 +484,21 @@ static int a5xx_zap_shader_resume(struct msm_gpu *gpu)
 
 	return ret;
 #endif
-    return 0;
+	struct scm_desc desc = {0};
+	int ret;
+	
+	pr_err(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>%s: %s \n ",__FILE__,__func__);
+	desc.args[0] = 0;
+	desc.args[1] = 13;
+	desc.arginfo = SCM_ARGS(2);
+
+	ret = scm_call2(SCM_SIP_FNID(SCM_SVC_BOOT, 0xA), &desc);
+	if (ret) {
+		pr_err("SCM resume call failed with error %d\n", ret);
+		return ret;
+	}
+     
+	return ret;
 }
 
 static int a5xx_zap_shader_init(struct msm_gpu *gpu)
@@ -494,7 +509,7 @@ static int a5xx_zap_shader_init(struct msm_gpu *gpu)
 	struct platform_device *pdev = a5xx_gpu->pdev;
 	struct device_node *node;
 	int ret;
-
+	pr_err(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>%s: %s \n ",__FILE__,__func__);	
 	/*
 	 * If the zap shader is already loaded into memory we just need to kick
 	 * the remote processor to reinitialize it
